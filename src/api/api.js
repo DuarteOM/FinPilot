@@ -3,6 +3,15 @@ const TOKEN_KEY = "finpilot_token";
 
 let token = localStorage.getItem(TOKEN_KEY);
 
+export class ApiError extends Error {
+  constructor(message, { status, details } = {}) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.details = details;
+  }
+}
+
 // ─── Base request ─────────────────────────────────────────────────────────────
 
 async function request(path, { method = "GET", body, auth = true } = {}) {
@@ -16,6 +25,12 @@ async function request(path, { method = "GET", body, auth = true } = {}) {
   });
   if (response.status === 204) return null;
   const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new ApiError(payload.error || "Não foi possível contactar o servidor.", {
+      status: response.status,
+      details: payload.details,
+    });
+  }
   if (!response.ok) throw new Error(payload.error || "Não foi possível contactar o servidor.");
   return payload;
 }

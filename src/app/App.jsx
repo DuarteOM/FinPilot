@@ -112,7 +112,7 @@ export default function App() {
 
   // Restore session on mount
   useEffect(() => {
-    if (!api.hasSession()) { setAuthChecking(false); return; }
+    if (!api.hasSession()) return;
     Promise.all([api.auth.me(), loadFinancialData(), api.ai.history(), api.notifications.list()])
       .then(([account, data, history, notifRes]) => {
         const name = fullName(account.user);

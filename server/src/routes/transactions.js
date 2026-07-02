@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { query, queryOne, execute, transaction } from "../db/database.js";
+import { query, queryOne, transaction } from "../db/database.js";
 import { validate } from "../middleware/validate.js";
 import { HttpError } from "../utils/http.js";
 

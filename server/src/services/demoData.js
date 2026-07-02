@@ -1,4 +1,4 @@
-import { execute, transaction, queryOne } from "../db/database.js";
+import { transaction } from "../db/database.js";
 
 const isoDate = daysAgo => {
   const d = new Date();

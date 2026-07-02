@@ -10,7 +10,18 @@ export function hashPassword(password) {
   return `${salt}:${hash}`;
 }
 
+export function passwordNeedsRehash(stored) {
+  const [salt, expectedHex] = stored?.split(":") ?? [];
+  return !(salt?.length === 32 && expectedHex?.length === 128);
+}
+
 export function verifyPassword(password, stored) {
+  if (passwordNeedsRehash(stored)) {
+    const actual = Buffer.from(String(password));
+    const expected = Buffer.from(String(stored ?? ""));
+    return actual.length === expected.length && timingSafeEqual(actual, expected);
+  }
+
   const [salt, expectedHex] = stored.split(":");
   if (!salt || !expectedHex) return false;
   const actual = scryptSync(password, salt, 64);

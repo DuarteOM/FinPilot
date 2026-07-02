@@ -12,19 +12,37 @@ export default function LoginPage({ T, dark, loading, onLogin, onGoogle, onRegis
   const [pw2,       setPw2]       = useState("");
   const [showPw,    setShowPw]    = useState(false);
   const [err,       setErr]       = useState("");
+  const [knownEmail, setKnownEmail] = useState("");
 
   const submit = async () => {
     setErr("");
     try {
       if (tab === "login") {
         if (!email || !pw) { setErr("Preenche todos os campos."); return; }
-        await onLogin({ email, password: pw });
+        await onLogin({ email: email.trim(), password: pw });
       } else {
         if (!firstName || !lastName || !email || !pw || !pw2) { setErr("Preenche todos os campos."); return; }
         if (pw !== pw2) { setErr("As palavras-passe não coincidem."); return; }
-        await onRegister({ firstName, lastName, email, password: pw });
+        await onRegister({
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim(),
+          password: pw,
+        });
       }
-    } catch (error) { setErr(error.message); }
+    } catch (error) {
+      if (tab === "register" && error.status === 409) {
+        const normalizedEmail = email.trim();
+        setKnownEmail(normalizedEmail);
+        setTab("login");
+        setEmail(normalizedEmail);
+        setPw("");
+        setPw2("");
+        setErr("Já existe uma conta com este email. Inicia sessão para continuar.");
+        return;
+      }
+      setErr(error.message);
+    }
   };
 
   const google = async () => { setErr(""); try { await onGoogle(); } catch (error) { setErr(error.message); } };
@@ -83,7 +101,7 @@ export default function LoginPage({ T, dark, loading, onLogin, onGoogle, onRegis
           {/* Tabs */}
           <div style={{ display: "flex", background: T.panel2, borderRadius: 10, padding: 3, marginBottom: 20, border: `1px solid ${T.border}` }}>
             {["login", "register"].map(t => (
-              <div key={t} className="fp-btn" onClick={() => { setTab(t); setErr(""); }}
+              <div key={t} className="fp-btn" onClick={() => { setTab(t); setErr(""); if (t === "register") setKnownEmail(""); }}
                 style={{ flex: 1, textAlign: "center", padding: "7px", borderRadius: 7, fontSize: 12.5, fontWeight: 500, background: tab === t ? T.panel : "transparent", color: tab === t ? T.text : T.sub, transition: "all .18s" }}>
                 {t === "login" ? "Iniciar sessão" : "Criar conta"}
               </div>
@@ -124,6 +142,11 @@ export default function LoginPage({ T, dark, loading, onLogin, onGoogle, onRegis
           </div>
 
           {err && <div style={{ fontSize: 11.5, color: T.danger, marginTop: 8, padding: "6px 10px", background: `${T.danger}12`, borderRadius: 7 }}>{err}</div>}
+          {knownEmail && tab === "login" && (
+            <div style={{ fontSize: 11.5, color: T.sub, marginTop: 7 }}>
+              Email pronto para iniciar sessão: <span style={{ color: T.text }}>{knownEmail}</span>
+            </div>
+          )}
           {tab === "login" && <div className="fp-btn" style={{ textAlign: "right", fontSize: 11.5, color: T.accent, marginTop: 6 }}>Esqueci a palavra-passe</div>}
 
           <div className="fp-btn" onClick={!loading ? submit : undefined}

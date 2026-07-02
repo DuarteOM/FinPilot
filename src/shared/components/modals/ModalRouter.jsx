@@ -115,7 +115,7 @@ function BudgetModal({ T, modal, close, setBudgets, toast }) {
     if (!name || !amount) { toast("error", "Preenche todos os campos."); return; }
     try {
       if (isEdit) {
-        const result = await api.budgets.update(modal.data.id, { name, amount: Number(amount), startDate, endDate, color, categoryIds: modal.data.categoryIds ?? [] });
+        await api.budgets.update(modal.data.id, { name, amount: Number(amount), startDate, endDate, color, categoryIds: modal.data.categoryIds ?? [] });
         setBudgets(items => items.map(item => item.id === modal.data.id ? { ...item, name, limit: Number(amount), color, startDate, endDate } : item));
         toast("success", "Orçamento atualizado."); close();
       } else {

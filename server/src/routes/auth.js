@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { z } from "zod";
-import { query, queryOne, execute, transaction } from "../db/database.js";
+import { queryOne, execute, transaction } from "../db/database.js";
 import { requireAuth } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
-import { createToken, hashPassword, verifyPassword } from "../utils/auth.js";
+import { createToken, hashPassword, passwordNeedsRehash, verifyPassword } from "../utils/auth.js";
 import { HttpError } from "../utils/http.js";
 import { seedDemoData } from "../services/demoData.js";
 
@@ -62,6 +62,14 @@ router.post(
       if (!user || !verifyPassword(req.body.password, user.password_hash)) {
         throw new HttpError(401, "Email ou palavra-passe incorretos.");
       }
+
+      if (passwordNeedsRehash(user.password_hash)) {
+        await execute("UPDATE users SET password_hash = ? WHERE user_id = ?", [
+          hashPassword(req.body.password),
+          user.user_id,
+        ]);
+      }
+
       res.json({
         token: createToken(user.user_id),
         user: { id: user.user_id, firstName: user.first_name, lastName: user.last_name, email: user.email },

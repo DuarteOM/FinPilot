@@ -1,6 +1,6 @@
 import { BarChart2, CreditCard, LayoutDashboard, LogOut, Moon, Repeat, Settings, Sparkles, Sun, Target, Wallet } from "lucide-react";
 
-export const NAV = [
+const NAV = [
   { id: "dashboard",     label: "Dashboard",   icon: LayoutDashboard },
   { id: "transactions",  label: "Transações",  icon: CreditCard },
   { id: "budgets",       label: "Orçamentos",  icon: Wallet },

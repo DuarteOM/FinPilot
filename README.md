@@ -1,16 +1,43 @@
-# React + Vite
+# FinPilot
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicação de gestão financeira com frontend React, API Node/Express, SQLite e integração opcional com a OpenAI.
 
-Currently, two official plugins are available:
+## Comandos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm --prefix server install
+npm run dev
+npm run build
+npm run lint
+npm test
+```
 
-## React Compiler
+## Estrutura
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```text
+src/
+├── components/
+│   ├── auth/       # Autenticação e onboarding
+│   ├── brand/      # Elementos de marca
+│   ├── modals/     # Formulários e router de modais
+│   └── ui/         # Componentes reutilizáveis
+├── config/         # Temas e estilos globais
+├── data/           # Dados de demonstração
+├── pages/          # Páginas principais
+├── utils/          # Formatação e utilitários
+├── FinPilotApp.jsx # Composição e estado global da aplicação
+└── main.jsx        # Entrada do React
 
-## Expanding the ESLint configuration
+server/
+├── src/
+│   ├── db/         # Base de dados SQLite
+│   ├── middleware/ # Segurança e validação
+│   ├── routes/     # API REST
+│   └── services/   # Regras financeiras e IA
+└── test/           # Testes de integração
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+O `FinPilot.jsx` da raiz é mantido como ponto de compatibilidade e reexporta a aplicação organizada em `src/`.
+
+Consulta [BACKEND.md](docs/BACKEND.md) para a API e [AI.md](docs/AI.md) para configurar e evoluir o assistente financeiro.

@@ -29,5 +29,66 @@ export const api={
   goals:{list:()=>request("/goals"),create:data=>request("/goals",{method:"POST",body:data}),update:(id,data)=>request(`/goals/${id}`,{method:"PUT",body:data}),contribute:(id,amount)=>request(`/goals/${id}/contributions`,{method:"POST",body:{amount}}),remove:id=>request(`/goals/${id}`,{method:"DELETE"})},
   subscriptions:{list:()=>request("/subscriptions"),create:data=>request("/subscriptions",{method:"POST",body:data}),update:(id,data)=>request(`/subscriptions/${id}`,{method:"PUT",body:data}),setActive:(id,active)=>request(`/subscriptions/${id}/status`,{method:"PATCH",body:{active}}),remove:id=>request(`/subscriptions/${id}`,{method:"DELETE"})},
   reports:{get:(months=7)=>request(`/reports?months=${months}`)},
-  ai:{chat:message=>request("/ai/chat",{method:"POST",body:{message}}),history:()=>request("/ai/history")},
+  ai: {
+    chat:        message => request("/ai/chat",    { method: "POST",   body: { message } }),
+    history:     ()      => request("/ai/history"),
+    clearHistory:()      => request("/ai/history", { method: "DELETE" }),
+
+    /**
+     * Streaming chat via Server-Sent Events.
+     * Calls `onDelta(text)` for each chunk and `onDone(model)` when finished.
+     * Returns an AbortController so the caller can cancel the request.
+     */
+    chatStream(message, { onDelta, onDone, onError }) {
+      const controller = new AbortController();
+      const url = `${API_URL}/ai/chat/stream`;
+
+      fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ message }),
+        signal: controller.signal,
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload.error || "Não foi possível contactar o servidor.");
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+
+            // SSE messages are separated by \n\n
+            const parts = buffer.split("\n\n");
+            buffer = parts.pop(); // keep incomplete last chunk
+
+            for (const part of parts) {
+              const line = part.replace(/^data:\s*/, "");
+              if (!line) continue;
+              try {
+                const parsed = JSON.parse(line);
+                if (parsed.delta !== undefined) onDelta(parsed.delta);
+                if (parsed.done)                onDone(parsed.model ?? "");
+              } catch {
+                // ignore malformed lines
+              }
+            }
+          }
+        })
+        .catch((err) => {
+          if (err.name !== "AbortError") onError(err);
+        });
+
+      return controller;
+    },
+  },
 };

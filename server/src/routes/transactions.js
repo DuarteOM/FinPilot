@@ -34,9 +34,8 @@ router.get("/", async (req, res, next) => {
     const limit  = Math.min(Math.max(Number(req.query.limit)  || 100, 1), 500);
     const offset = Math.max(Number(req.query.offset) || 0, 0);
     const search = String(req.query.search || "").trim();
-    const type   = req.query.type; // income | expense | transfer
+    const type   = req.query.type;
 
-    // Build WHERE conditions
     const conditions = ["t.account_id IN (SELECT account_id FROM accounts WHERE user_id = ?)"];
     const params     = [req.user.id];
 
@@ -65,14 +64,15 @@ router.get("/", async (req, res, next) => {
       [...params, limit, offset]
     );
 
-    // Attach items to each transaction
+    // Attach items
     const txIds = rows.map(r => r.id);
     let items = [];
     if (txIds.length) {
       items = await query(
         `SELECT ti.item_id AS id, ti.transaction_id AS transactionId,
-                ti.category_id AS categoryId, c.name AS categoryName, c.color AS categoryColor,
-                c.icon AS categoryIcon, ti.description, ti.amount
+                ti.category_id AS categoryId, c.name AS categoryName,
+                c.color AS categoryColor, c.icon AS categoryIcon,
+                ti.description, ti.amount
          FROM transaction_items ti
          JOIN categories c ON c.category_id = ti.category_id
          WHERE ti.transaction_id IN (${txIds.map(() => "?").join(",")})`,
@@ -85,9 +85,7 @@ router.get("/", async (req, res, next) => {
       return acc;
     }, {});
 
-    res.json({
-      transactions: rows.map(r => ({ ...r, items: itemsByTx[r.id] || [] })),
-    });
+    res.json({ transactions: rows.map(r => ({ ...r, items: itemsByTx[r.id] || [] })) });
   } catch (err) { next(err); }
 });
 
@@ -121,16 +119,23 @@ router.get("/:id", async (req, res, next) => {
 // ─── POST /api/transactions ───────────────────────────────────────────────────
 router.post("/", validate(input), async (req, res, next) => {
   try {
-    const { accountId, paymentMethodId, transactionType, description, totalAmount, transactionDate, merchant, location, notes, status, items } = req.body;
+    const { accountId, paymentMethodId, transactionType, description, totalAmount,
+            transactionDate, merchant, location, notes, status, items } = req.body;
 
-    // Verify account belongs to user
-    const account = await queryOne("SELECT account_id FROM accounts WHERE account_id = ? AND user_id = ?", [accountId, req.user.id]);
+    const account = await queryOne(
+      "SELECT account_id FROM accounts WHERE account_id = ? AND user_id = ?",
+      [accountId, req.user.id]
+    );
     if (!account) return next(new HttpError(403, "Conta não encontrada."));
 
     const txId = await transaction(async conn => {
       const [txResult] = await conn.execute(
-        "INSERT INTO transactions (account_id, payment_method_id, transaction_type, description, total_amount, transaction_date, merchant, location, notes, status) VALUES (?,?,?,?,?,?,?,?,?,?)",
-        [accountId, paymentMethodId ?? null, transactionType, description ?? null, totalAmount, transactionDate, merchant ?? null, location ?? null, notes ?? null, status]
+        `INSERT INTO transactions
+         (account_id, payment_method_id, transaction_type, description, total_amount,
+          transaction_date, merchant, location, notes, status)
+         VALUES (?,?,?,?,?,?,?,?,?,?)`,
+        [accountId, paymentMethodId ?? null, transactionType, description ?? null,
+         totalAmount, transactionDate, merchant ?? null, location ?? null, notes ?? null, status]
       );
       const newId = txResult.insertId;
 
@@ -141,9 +146,11 @@ router.post("/", validate(input), async (req, res, next) => {
         );
       }
 
-      // Update account balance
       const delta = transactionType === "expense" ? -totalAmount : totalAmount;
-      await conn.execute("UPDATE accounts SET balance = balance + ? WHERE account_id = ?", [delta, accountId]);
+      await conn.execute(
+        "UPDATE accounts SET balance = balance + ? WHERE account_id = ?",
+        [delta, accountId]
+      );
 
       return newId;
     });
@@ -155,7 +162,6 @@ router.post("/", validate(input), async (req, res, next) => {
 // ─── DELETE /api/transactions/:id ─────────────────────────────────────────────
 router.delete("/:id", async (req, res, next) => {
   try {
-    // Fetch first to reverse balance
     const tx = await queryOne(
       `SELECT t.transaction_id, t.transaction_type, t.total_amount, t.account_id
        FROM transactions t

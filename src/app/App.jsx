@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
 
 import { createGlobalStyles, darkTheme, lightTheme } from "../shared/utils/theme";
@@ -174,11 +174,11 @@ export default function App() {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  const toast = (type, text) => {
+  const toast = useCallback((type, text) => {
     const id = nextId();
     setToasts(ts => [...ts, { id, type, text }]);
     setTimeout(() => setToasts(ts => ts.filter(t => t.id !== id)), 3600);
-  };
+  }, []);
 
   const applyData = data => {
     setTxs(data.transactions);

@@ -132,17 +132,26 @@ export default function TransactionsPage({ T, txs, setTxs, setModal, toast }) {
   }, [searchDraft]);
 
   useEffect(() => {
+    let cancelled = false;
+
     Promise.all([
       api.categories.list(),
       api.accounts.list(),
       api.transactions.paymentMethods(),
     ])
       .then(([catRes, accountRes, methodRes]) => {
+        if (cancelled) return;
         setCategories(catRes.categories ?? []);
         setAccounts(accountRes.accounts ?? []);
         setMethods(methodRes.methods ?? []);
       })
-      .catch(error => toast("error", error.message));
+      .catch(error => {
+        if (!cancelled) toast("error", error.message);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [toast]);
 
   useEffect(() => {

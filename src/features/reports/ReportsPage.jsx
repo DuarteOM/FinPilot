@@ -6,6 +6,15 @@ import { formatCurrency, formatRoundedCurrency } from "../../shared/utils/curren
 import { Leg, Metric } from "../../shared/components/FinanceComponents";
 import { api } from "../../api/api";
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 export default function ReportsPage({ T, toast }) {
   const [period,     setPeriod]     = useState("month");
   const [reportData, setReportData] = useState(REPORT_DATA);
@@ -26,6 +35,84 @@ export default function ReportsPage({ T, toast }) {
   const totalSaved  = reportData.reduce((a, d) => a + d.saved, 0);
   const best        = reportData.reduce((a, b) => b.saved > a.saved ? b : a, reportData[0] || { m: "—", saved: 0 });
 
+  const periodLabel = { month: "Este mes", quarter: "Ultimos 3 meses", year: "Este ano" }[period];
+
+  const exportPdf = () => {
+    const reportWindow = window.open("", "_blank", "noopener,noreferrer,width=900,height=700");
+    if (!reportWindow) {
+      toast("error", "Permite pop-ups para exportar o PDF.");
+      return;
+    }
+
+    const trendRows = reportData.map(item => `
+      <tr>
+        <td>${escapeHtml(item.m)}</td>
+        <td>${escapeHtml(formatCurrency(item.income))}</td>
+        <td>${escapeHtml(formatCurrency(item.expense))}</td>
+        <td>${escapeHtml(formatCurrency(item.saved))}</td>
+      </tr>
+    `).join("");
+    const categoryRows = categories.map(item => `
+      <tr>
+        <td><span class="dot" style="background:${escapeHtml(item.color)}"></span>${escapeHtml(item.name)}</td>
+        <td>${escapeHtml(formatCurrency(item.value))}</td>
+      </tr>
+    `).join("");
+
+    reportWindow.document.write(`
+      <!doctype html>
+      <html lang="pt">
+        <head>
+          <meta charset="utf-8" />
+          <title>FinPilot - Relatorio financeiro</title>
+          <style>
+            @page { margin: 18mm; }
+            * { box-sizing: border-box; }
+            body { margin: 0; color: #111827; font-family: Inter, Arial, sans-serif; font-size: 12px; }
+            header { border-bottom: 1px solid #d7dde8; padding-bottom: 14px; margin-bottom: 18px; }
+            h1 { margin: 0 0 4px; font-size: 24px; }
+            h2 { margin: 24px 0 10px; font-size: 15px; }
+            .muted { color: #667085; }
+            .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+            .metric { border: 1px solid #d7dde8; padding: 12px; border-radius: 8px; }
+            .metric span { display: block; color: #667085; margin-bottom: 6px; }
+            .metric strong { display: block; font-size: 18px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border-bottom: 1px solid #e6eaf0; padding: 9px 8px; text-align: left; }
+            th { background: #f5f7fa; color: #344054; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+            .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+            .footer { margin-top: 24px; color: #667085; font-size: 10px; }
+          </style>
+        </head>
+        <body>
+          <header>
+            <h1>Relatorio financeiro FinPilot</h1>
+            <div class="muted">${escapeHtml(periodLabel)} - ${escapeHtml(new Date().toLocaleDateString("pt-PT"))}</div>
+          </header>
+          <section class="metrics">
+            <div class="metric"><span>Receitas totais</span><strong>${escapeHtml(formatCurrency(totalIncome))}</strong></div>
+            <div class="metric"><span>Despesas totais</span><strong>${escapeHtml(formatCurrency(totalExp))}</strong></div>
+            <div class="metric"><span>Total poupado</span><strong>${escapeHtml(formatCurrency(totalSaved))}</strong></div>
+          </section>
+          <h2>Receitas, despesas e poupanca</h2>
+          <table>
+            <thead><tr><th>Periodo</th><th>Receitas</th><th>Despesas</th><th>Poupanca</th></tr></thead>
+            <tbody>${trendRows}</tbody>
+          </table>
+          <h2>Despesa por categoria</h2>
+          <table>
+            <thead><tr><th>Categoria</th><th>Valor</th></tr></thead>
+            <tbody>${categoryRows}</tbody>
+          </table>
+          <div class="footer">Exportado pelo FinPilot.</div>
+          <script>window.addEventListener("load", () => window.print());</script>
+        </body>
+      </html>
+    `);
+    reportWindow.document.close();
+    toast("success", "Relatorio pronto para guardar como PDF.");
+  };
+
   return (
     <div className="page">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
@@ -34,7 +121,7 @@ export default function ReportsPage({ T, toast }) {
             <div key={v} className="fp-btn" onClick={() => setPeriod(v)} style={{ padding: "6px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 500, background: period === v ? T.accent : T.panel2, color: period === v ? "#0A0D12" : T.sub, border: `1px solid ${period === v ? T.accent : T.border}`, transition: "all .18s" }}>{l}</div>
           ))}
         </div>
-        <div className="fp-btn" onClick={() => toast("info", "Exportação em PDF em breve.")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: `1px solid ${T.border}`, color: T.sub, fontSize: 12.5 }}>
+        <div className="fp-btn" onClick={exportPdf} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: `1px solid ${T.border}`, color: T.sub, fontSize: 12.5 }}>
           <Download size={13} />Exportar PDF
         </div>
       </div>
@@ -83,7 +170,12 @@ export default function ReportsPage({ T, toast }) {
             <BarChart data={categories} layout="vertical" margin={{ left: 10 }}>
               <XAxis type="number" hide />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 11.5, fill: T.sub }} axisLine={false} tickLine={false} width={90} />
-              <Tooltip contentStyle={{ background: T.panel2, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 11 }} formatter={v => formatCurrency(v)} />
+              <Tooltip
+                contentStyle={{ background: T.panel2, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 11, color: T.text }}
+                itemStyle={{ color: T.text }}
+                labelStyle={{ color: T.sub }}
+                formatter={v => formatCurrency(v)}
+              />
               <Bar dataKey="value" radius={[0, 4, 4, 0]} isAnimationActive animationDuration={800}>
                 {categories.map((c, i) => <Cell key={i} fill={c.color} />)}
               </Bar>

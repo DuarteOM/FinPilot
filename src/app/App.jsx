@@ -37,6 +37,31 @@ function fullName(user) {
   return [user.firstName, user.lastName].filter(Boolean).join(" ");
 }
 
+function loadGoogleIdentity() {
+  return new Promise((resolve, reject) => {
+    if (window.google?.accounts?.oauth2) {
+      resolve(window.google);
+      return;
+    }
+
+    const existing = document.querySelector("script[data-google-identity]");
+    if (existing) {
+      existing.addEventListener("load", () => resolve(window.google), { once: true });
+      existing.addEventListener("error", () => reject(new Error("Não foi possível carregar o Google.")), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.dataset.googleIdentity = "true";
+    script.onload = () => resolve(window.google);
+    script.onerror = () => reject(new Error("Não foi possível carregar o Google."));
+    document.head.appendChild(script);
+  });
+}
+
 async function loadFinancialData() {
   const [txRes, bdgRes, goalRes, subRes] = await Promise.all([
     api.transactions.list(),
@@ -82,6 +107,7 @@ export default function App() {
   const [modal,      setModal]      = useState(null);
   const [searchQ,    setSearchQ]    = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [contentScrolled, setContentScrolled] = useState(false);
 
   // AI
   const [msgs, setMsgs] = useState(CHAT0);
@@ -109,6 +135,10 @@ export default function App() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  useEffect(() => {
+    setContentScrolled(false);
+  }, [view]);
 
   // Restore session on mount
   useEffect(() => {
@@ -178,6 +208,40 @@ export default function App() {
     }
   };
 
+  const loginWithGoogle = async () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) throw new Error("Configura VITE_GOOGLE_CLIENT_ID no ficheiro .env.");
+
+    setAuthLoad(true);
+    try {
+      const google = await loadGoogleIdentity();
+      const accessToken = await new Promise((resolve, reject) => {
+        const client = google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: "openid email profile",
+          prompt: "select_account",
+          callback: response => response.access_token
+            ? resolve(response.access_token)
+            : reject(new Error(response.error_description || "A Google não devolveu credenciais.")),
+        });
+        client.requestAccessToken();
+      });
+
+      const result = await api.auth.google(accessToken);
+      api.setToken(result.token);
+      const name = fullName(result.user);
+      setProfile({ ...result.user, name });
+      applyData(await loadFinancialData());
+      setAuthed(true);
+      toast("success", "Sessão iniciada com Google.");
+    } catch (error) {
+      api.setToken(null);
+      throw error;
+    } finally {
+      setAuthLoad(false);
+    }
+  };
+
   const logout = () => {
     api.setToken(null);
     setAuthed(false);
@@ -206,7 +270,7 @@ export default function App() {
 
   if (authChecking) {
     return (
-      <div style={{ minHeight: 600, display: "grid", placeItems: "center", background: T.bg, color: T.text }}>
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: T.bg, color: T.text }}>
         A carregar o FinPilot…
       </div>
     );
@@ -216,7 +280,7 @@ export default function App() {
     return (
       <LoginPage T={T} dark={dark} loading={authLoad}
         onLogin={c => login(c, false)}
-        onGoogle={() => Promise.reject(new Error("A autenticação Google será configurada numa fase seguinte."))}
+        onGoogle={loginWithGoogle}
         onRegister={c => login(c, true)} />
     );
   }
@@ -231,13 +295,18 @@ export default function App() {
   // ── Shell ───────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ fontFamily: "'Inter',-apple-system,sans-serif", background: T.bg, color: T.text, minHeight: 600, display: "flex", borderRadius: 20, overflow: "hidden", border: `1px solid ${T.border}`, position: "relative" }}>
+    <div style={{ fontFamily: "'Inter',-apple-system,sans-serif", background: T.bg, color: T.text, minHeight: "100vh", display: "flex", borderRadius: 0, overflow: "hidden", border: `1px solid ${T.border}`, position: "relative" }}>
       <style>{createGlobalStyles(T)}</style>
 
       <Sidebar T={T} view={view} setView={setView} dark={dark} setDark={setDark}
         profile={profile} txCount={txs.length} onLogout={logout} />
 
-      <div ref={overlayRef} className="fp-scroll" style={{ flex: 1, overflowY: "auto", maxHeight: 700, display: "flex", flexDirection: "column" }}>
+      <div
+        ref={overlayRef}
+        className="fp-scroll"
+        onScroll={e => setContentScrolled(e.currentTarget.scrollTop > 80)}
+        style={{ flex: 1, overflowY: "auto", maxHeight: "100vh", display: "flex", flexDirection: "column" }}
+      >
         <TopBar T={T} view={view} profile={profile}
           notifs={notifs} setNotifs={setNotifs}
           searchQ={searchQ} setSearchQ={setSearchQ}
@@ -273,8 +342,8 @@ export default function App() {
 
       <button className="fp-btn" aria-label="Abrir assistente FinPilot"
         onClick={() => setChatOpen(o => !o)}
-        style={{ position: "absolute", bottom: 22, right: 22, width: 50, height: 50, borderRadius: "50%", background: `linear-gradient(135deg,${T.accent},${T.accent2})`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 18px rgba(0,0,0,.28)", zIndex: 5, border: "none", cursor: "pointer" }}>
-        <Sparkles size={20} color="#0A0D12" />
+        style={{ position: "absolute", bottom: 22, right: 22, width: contentScrolled && !chatOpen ? 30 : 50, height: contentScrolled && !chatOpen ? 30 : 50, borderRadius: "50%", background: `linear-gradient(135deg,${T.accent},${T.accent2})`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: contentScrolled && !chatOpen ? "0 4px 12px rgba(0,0,0,.22)" : "0 6px 18px rgba(0,0,0,.28)", zIndex: 5, border: "none", cursor: "pointer", transition: "width .22s ease, height .22s ease, box-shadow .22s ease, transform .22s ease" }}>
+        <Sparkles size={contentScrolled && !chatOpen ? 12 : 20} color="#0A0D12" />
       </button>
     </div>
   );

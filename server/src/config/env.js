@@ -20,6 +20,7 @@ const schema = z.object({
 
   AUTH_SECRET:       z.string().min(24).default("finpilot-dev-secret-change-before-production"),
   TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(604800),
+  GOOGLE_CLIENT_ID:  z.string().optional(),
 
   OPENAI_API_KEY:    z.string().optional(),
   OPENAI_MODEL:      z.string().default("gpt-4o"),

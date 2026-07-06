@@ -8,13 +8,17 @@ export async function requireAuth(req, _res, next) {
     const payload = verifyToken(token);
     if (!payload) return next(new HttpError(401, "Autenticação necessária."));
 
+    // payload.sub may be a number or bigint — normalise to Number
+    const userId = Number(payload.sub);
+
     const user = await queryOne(
-      "SELECT user_id AS id, first_name, last_name, email, currency_id FROM users WHERE user_id = ? AND is_active = 1",
-      [payload.sub]
+      "SELECT user_id AS id, first_name AS firstName, last_name AS lastName, email, currency_id AS currencyId FROM users WHERE user_id = ? AND is_active = 1",
+      [userId]
     );
     if (!user) return next(new HttpError(401, "Utilizador inválido."));
 
-    req.user = user;
+    // Ensure id is always a plain Number (never BigInt)
+    req.user = { ...user, id: Number(user.id) };
     next();
   } catch (err) {
     next(err);

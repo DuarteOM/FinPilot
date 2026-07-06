@@ -49,6 +49,7 @@ export const api = {
   auth: {
     login:    data => request("/auth/login",    { method: "POST", body: data, auth: false }),
     register: data => request("/auth/register", { method: "POST", body: data, auth: false }),
+    google:   accessToken => request("/auth/google", { method: "POST", body: { accessToken }, auth: false }),
     me:       ()   => request("/auth/me"),
   },
 
@@ -81,12 +82,26 @@ export const api = {
   transactions: {
     list:   (params = {}) => {
       const qs = new URLSearchParams();
-      if (params.limit)   qs.set("limit",   params.limit);
-      if (params.offset)  qs.set("offset",  params.offset);
-      if (params.search)  qs.set("search",  params.search);
-      if (params.type)    qs.set("type",    params.type);
+      [
+        "search",
+        "type",
+        "category",
+        "account",
+        "paymentMethod",
+        "status",
+        "dateFrom",
+        "dateTo",
+        "minAmount",
+        "maxAmount",
+        "sort",
+        "limit",
+        "offset",
+      ].forEach(key => {
+        if (params[key] !== undefined && params[key] !== null && params[key] !== "") qs.set(key, params[key]);
+      });
       return request(`/transactions${qs.size ? `?${qs}` : ""}`);
     },
+    paymentMethods: () => request("/transactions/payment-methods"),
     get:    id         => request(`/transactions/${id}`),
     create: data       => request("/transactions",       { method: "POST",   body: data }),
     remove: id         => request(`/transactions/${id}`, { method: "DELETE" }),

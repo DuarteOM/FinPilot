@@ -50,7 +50,7 @@ export default function LoginPage({ T, dark, loading, onLogin, onGoogle, onRegis
   const inputStyle = { padding: "10px 12px", borderRadius: 9, border: `1px solid ${T.border}`, background: T.panel2, color: T.text, fontSize: 12.5, outline: "none", width: "100%" };
 
   return (
-    <div style={{ fontFamily: "'Inter',-apple-system,sans-serif", background: T.bg, color: T.text, minHeight: 600, borderRadius: 20, border: `1px solid ${T.border}`, overflow: "hidden", display: "flex", alignItems: "stretch" }}>
+    <div style={{ fontFamily: "'Inter',-apple-system,sans-serif", background: T.bg, color: T.text, minHeight: "100vh", borderRadius: 0, border: `1px solid ${T.border}`, overflow: "hidden", display: "flex", alignItems: "stretch" }}>
       <style>{createGlobalStyles(T)}</style>
 
       {/* ── Left panel ── */}

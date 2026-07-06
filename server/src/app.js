@@ -39,11 +39,12 @@ app.use(rateLimit({
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get("/api/health", async (_req, res) => {
   try {
-    await pool.execute("SELECT 1");
+    await pool.query("SELECT 1");
     res.json({
       status: "ok",
       service: "finpilot-api",
       db: "mysql",
+      dbVersion: "pool.query",          // ← confirms new database.js is loaded
       aiConfigured: Boolean(env.OPENAI_API_KEY),
     });
   } catch {

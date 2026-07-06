@@ -6,6 +6,36 @@ import { HttpError } from "../utils/http.js";
 
 const router = Router();
 
+const defaultCategories = [
+  ["Restauração",  "utensils",     "#E8A33D", "expense"],
+  ["Supermercado", "shopping-bag", "#5DCAA5", "expense"],
+  ["Transportes",  "car",          "#7F8FE4", "expense"],
+  ["Combustível",  "fuel",         "#7F8FE4", "expense"],
+  ["Subscrições",  "film",         "#D4537E", "expense"],
+  ["Casa",         "home",         "#888780", "expense"],
+  ["Saúde",        "heart-pulse",  "#5DCAA5", "expense"],
+  ["Compras",      "bag",          "#7F8FE4", "expense"],
+  ["Lazer",        "smile",        "#D4537E", "expense"],
+  ["Outros",       "circle",       "#98A2B3", "expense"],
+  ["Salário",      "briefcase",    "#5DCAA5", "income"],
+  ["Freelance",    "laptop",       "#5DCAA5", "income"],
+  ["Receita",      "wallet",       "#5DCAA5", "income"],
+];
+
+async function ensureDefaultCategories() {
+  for (const [name, icon, color, type] of defaultCategories) {
+    const result = await execute(
+      `INSERT INTO categories (user_id, name, icon, color, type)
+       SELECT NULL, ?, ?, ?, ?
+       WHERE NOT EXISTS (
+         SELECT 1 FROM categories WHERE user_id IS NULL AND name = ? AND type = ?
+       )`,
+      [name, icon, color, type, name, type]
+    );
+    void result;
+  }
+}
+
 const input = z.object({
   name:             z.string().trim().min(1).max(120),
   icon:             z.string().max(80).nullable().optional(),
@@ -18,6 +48,8 @@ const input = z.object({
 // Returns global categories (user_id IS NULL) + user's own categories
 router.get("/", async (req, res, next) => {
   try {
+    await ensureDefaultCategories();
+
     const rows = await query(
       `SELECT category_id AS id, name, icon, color, type, parent_category_id AS parentCategoryId,
               CASE WHEN user_id IS NULL THEN 0 ELSE 1 END AS isCustom

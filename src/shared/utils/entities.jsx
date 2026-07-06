@@ -24,8 +24,9 @@ export const iconFor = name => ICON_MAP[name] || Briefcase;
  * { id, type, merchant, totalAmount, date, categoryName, categoryColor, accountName, status }
  */
 export function hydrateTransaction(item) {
-  const cat   = item.categoryName ?? item.category ?? "Outros";
-  const color = item.categoryColor ?? "#5DCAA5";
+  const firstItem = item.items?.[0];
+  const cat   = item.categoryName ?? firstItem?.categoryName ?? item.category ?? "Outros";
+  const color = item.categoryColor ?? firstItem?.categoryColor ?? "#5DCAA5";
   const amount = item.type === "expense" ? -Number(item.totalAmount) : Number(item.totalAmount);
   return {
     ...item,

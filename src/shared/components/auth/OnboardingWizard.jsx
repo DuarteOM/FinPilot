@@ -16,7 +16,7 @@ export default function OnboardingWizard({ T, step, setStep, onDone }) {
   const next = () => step < 3 ? setStep(s => s + 1) : onDone();
 
   return (
-    <div style={{ fontFamily: "'Inter',-apple-system,sans-serif", background: T.bg, color: T.text, minHeight: 600, borderRadius: 20, border: `1px solid ${T.border}`, overflow: "hidden", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 48 }}>
+    <div style={{ fontFamily: "'Inter',-apple-system,sans-serif", background: T.bg, color: T.text, minHeight: "100vh", borderRadius: 0, border: `1px solid ${T.border}`, overflow: "hidden", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 48 }}>
       <style>{createGlobalStyles(T)}</style>
 
       {/* Progress */}

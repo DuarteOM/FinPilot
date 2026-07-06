@@ -1,3 +1,4 @@
+console.log("ESTE SERVER FOI CARREGADO:", import.meta.url);
 import { app } from "./app.js";
 import { env } from "./config/env.js";
 import { pool } from "./db/database.js";

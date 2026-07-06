@@ -32,8 +32,10 @@ export async function seedDemoData(userId) {
       ["Saúde",        "heart-pulse",  "#5DCAA5", "expense"],
       ["Compras",      "bag",          "#7F8FE4", "expense"],
       ["Lazer",        "smile",        "#D4537E", "expense"],
+      ["Outros",       "circle",       "#98A2B3", "expense"],
       ["Salário",      "briefcase",    "#5DCAA5", "income"],
       ["Freelance",    "laptop",       "#5DCAA5", "income"],
+      ["Receita",      "wallet",       "#5DCAA5", "income"],
     ];
 
     const catIds = {};

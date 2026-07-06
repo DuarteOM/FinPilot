@@ -13,7 +13,11 @@ export default function SubscriptionsPage({ T, subs, setSubs, setModal, toast })
   const unused   = active.filter(s => !s.used);
 
   const restore = async id => {
-    try { await api.subscriptions.setActive(id, true); setSubs(ss => ss.map(s => s.id === id ? { ...s, active: true } : s)); toast("success", "Subscrição reativada."); }
+    try {
+      await api.subscriptions.setStatus(id, "active");
+      setSubs(ss => ss.map(s => s.id === id ? { ...s, active: true, status: "active", used: true } : s));
+      toast("success", "Subscrição reativada.");
+    }
     catch (error) { toast("error", error.message); }
   };
 

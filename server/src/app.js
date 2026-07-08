@@ -45,7 +45,7 @@ app.get("/api/health", async (_req, res) => {
       service: "finpilot-api",
       db: "mysql",
       dbVersion: "pool.query",          // ← confirms new database.js is loaded
-      aiConfigured: Boolean(env.OPENAI_API_KEY),
+      aiConfigured: Boolean(env.OPENAI_API_KEY || env.OPENROUTER_API_KEY),
     });
   } catch {
     res.status(503).json({ status: "error", db: "unreachable" });

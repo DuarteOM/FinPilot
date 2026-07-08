@@ -1,4 +1,5 @@
-import { BarChart2, CreditCard, LayoutDashboard, LogOut, Moon, Repeat, Settings, Sparkles, Sun, Target, Wallet } from "lucide-react";
+import { BarChart2, CreditCard, LayoutDashboard, LogOut, Moon, Repeat, Settings, Sun, Target, Wallet } from "lucide-react";
+import LogoFinPilot from "../../../../Logo_FinPilot.png";
 
 const NAV = [
   { id: "dashboard",     label: "Dashboard",   icon: LayoutDashboard },
@@ -16,13 +17,12 @@ export default function Sidebar({ T, view, setView, dark, setDark, profile, txCo
     .map(w => w[0].toUpperCase()).join("");
 
   return (
-    <div style={{ width: 220, flexShrink: 0, padding: "24px 14px", borderRight: `1px solid ${T.border}`, display: "flex", flexDirection: "column", gap: 24, background: T.panel }}>
+    <div style={{ width: 228, flexShrink: 0, padding: "20px 14px", borderRight: `1px solid ${T.border}`, display: "flex", flexDirection: "column", gap: 24, background: T.panel }}>
       {/* Logo */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 6px" }}>
-        <div style={{ width: 32, height: 32, borderRadius: 9, background: `linear-gradient(135deg,${T.accent},${T.accent2})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Sparkles size={16} color="#0A0D12" />
+      <div style={{ display: "flex", justifyContent: "center", padding: "2px 0 0" }}>
+        <div style={{ width: 158, height: 84, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <img src={LogoFinPilot} alt="FinPilot logo" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
         </div>
-        <span className="fp-disp" style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 16 }}>FinPilot</span>
       </div>
 
       {/* Nav */}

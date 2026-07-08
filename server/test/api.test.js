@@ -151,6 +151,16 @@ test("transaction CRUD works with the current API contract", async () => {
     .expect(204);
 });
 
+test("AI rejects messages that are not relevant to the app", async () => {
+  const response = await request(app)
+    .post("/api/ai/chat")
+    .set("Authorization", `Bearer ${token}`)
+    .send({ message: "Diz-me uma piada" })
+    .expect(400);
+
+  assert.match(response.body.error, /finanças|FinPilot/i);
+});
+
 test("AI explains missing configuration when no key is configured", async () => {
   if (process.env.OPENAI_API_KEY) return;
 

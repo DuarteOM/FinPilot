@@ -20,7 +20,7 @@ export const createGlobalStyles = T => `
   .fp-fill{transition:width 1s cubic-bezier(.2,.8,.2,1)}
   @keyframes fade-up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
   @keyframes scale-in{from{opacity:0;transform:scale(.96) translateY(-4px)}to{opacity:1;transform:scale(1) translateY(0)}}
-  @keyframes slide-r{from{transform:translateX(100%)}to{transform:translateX(0)}}
+  @keyframes slide-r{from{opacity:0}to{opacity:1}}
   @keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
   @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
   @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
@@ -29,7 +29,7 @@ export const createGlobalStyles = T => `
   .page{animation:fade-up .35s cubic-bezier(.2,.7,.3,1) both}
   .stagger{animation:fade-up .38s cubic-bezier(.2,.7,.3,1) both}
   .scale-in{animation:scale-in .18s ease both}
-  .slide-r{animation:slide-r .28s cubic-bezier(.2,.7,.3,1) both}
+  .slide-r{animation:slide-r .28s cubic-bezier(.2,.8,.2,1) both}
   .dot{animation:pulse 1.3s infinite ease-in-out}
   .spinner{animation:spin .75s linear infinite}
   .float1{animation:float 6s ease-in-out infinite}

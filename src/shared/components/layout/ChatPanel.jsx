@@ -1,11 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { Send, Sparkles, Trash2, X } from "lucide-react";
+import { Send, Trash2, X } from "lucide-react";
 import { api } from "../../../api/api";
+import LogoReduzido from "../../../../Logo_Reduzido.png";
 
-const SUGGESTIONS = [
+const BASE_SUGGESTIONS = [
   "Onde estou a gastar mais dinheiro?",
   "Quanto posso gastar este fim de semana?",
   "Como posso poupar 200€ por mês?",
+];
+
+const FOLLOW_UP_SUGGESTIONS = [
+  "Mostra-me o meu saldo atual.",
+  "Quais foram as minhas últimas despesas?",
+  "Ajuda-me a organizar o orçamento deste mês.",
 ];
 
 export default function ChatPanel({ T, msgs, setMsgs, onClose }) {
@@ -60,13 +67,17 @@ export default function ChatPanel({ T, msgs, setMsgs, onClose }) {
     } catch { /* fail silently */ }
   };
 
+  const visibleSuggestions = msgs.filter(m => m.role === "user").length > 0
+    ? FOLLOW_UP_SUGGESTIONS
+    : BASE_SUGGESTIONS;
+
   return (
-    <div className="slide-r" style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: 330, background: T.panel, borderLeft: `1px solid ${T.border}`, display: "flex", flexDirection: "column", zIndex: 10 }}>
+    <div className="slide-r" style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: 330, background: T.panel, borderLeft: `1px solid ${T.border}`, display: "flex", flexDirection: "column", zIndex: 10, boxShadow: "0 18px 50px rgba(0,0,0,0.22)" }}>
       {/* Header */}
       <div style={{ padding: "14px 16px 12px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 26, height: 26, borderRadius: 8, background: `linear-gradient(135deg,${T.accent},${T.accent2})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Sparkles size={13} color="#0A0D12" />
+          <div style={{ width: 28, height: 28, borderRadius: 8, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <img src={LogoReduzido} alt="FinPilot logo" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
           </div>
           <span className="fp-disp" style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 13, fontWeight: 600 }}>Assistente FinPilot</span>
         </div>
@@ -96,16 +107,14 @@ export default function ChatPanel({ T, msgs, setMsgs, onClose }) {
       </div>
 
       {/* Suggestions */}
-      {msgs.length < 3 && (
-        <div style={{ padding: "0 14px 10px", display: "flex", flexDirection: "column", gap: 5 }}>
-          {SUGGESTIONS.map(s => (
-            <div key={s} className="fp-btn fp-row" onClick={() => send(s)}
-              style={{ fontSize: 11.5, padding: "7px 10px", borderRadius: 9, border: `1px solid ${T.border}`, color: T.sub }}>
-              {s}
-            </div>
-          ))}
-        </div>
-      )}
+      <div style={{ padding: "0 14px 10px", display: "flex", flexDirection: "column", gap: 5 }}>
+        {visibleSuggestions.map(s => (
+          <div key={s} className="fp-btn fp-row" onClick={() => send(s)}
+            style={{ fontSize: 11.5, padding: "7px 10px", borderRadius: 9, border: `1px solid ${T.border}`, color: T.sub }}>
+            {s}
+          </div>
+        ))}
+      </div>
 
       {/* Input */}
       <div style={{ padding: 12, borderTop: `1px solid ${T.border}`, display: "flex", gap: 8 }}>

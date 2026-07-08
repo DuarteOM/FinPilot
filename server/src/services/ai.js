@@ -16,10 +16,24 @@ Quando sugerires uma ação, mostra o impacto estimado e indica as premissas. Va
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getClient() {
-  if (!env.OPENAI_API_KEY) {
-    throw new HttpError(503, "A IA ainda não está configurada. Define OPENAI_API_KEY no servidor.");
+  const apiKey = env.OPENAI_API_KEY || env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    throw new HttpError(503, "A IA ainda não está configurada. Define OPENAI_API_KEY ou OPENROUTER_API_KEY no servidor.");
   }
-  return new OpenAI({ apiKey: env.OPENAI_API_KEY });
+
+  return new OpenAI({
+    apiKey,
+    baseURL: env.OPENROUTER_BASE_URL,
+    defaultHeaders: {
+      "HTTP-Referer": env.CLIENT_ORIGIN,
+      "X-Title": "FinPilot",
+    },
+  });
+}
+
+function resolveModel(model) {
+  if (!model) return "openai/gpt-4o-mini";
+  return model.includes("/") ? model : `openai/${model}`;
 }
 
 /**
@@ -76,93 +90,136 @@ async function saveExchange(conversationId, userMessage, assistantAnswer, tokens
 
 // ─── Moderation ───────────────────────────────────────────────────────────────
 
+function isRelevantToFinPilot(text) {
+  const normalized = text.toLowerCase();
+  const financeKeywords = [
+    "finança", "financeiro", "orçamento", "orçamento", "despesa", "despesas", "receita", "receitas",
+    "saldo", "conta", "contas", "gasto", "gastos", "poupar", "poupança", "invest", "investimento",
+    "meta", "objetivo", "subscrição", "subscrição", "transação", "transações", "categoria", "categorias",
+    "dinheiro", "budget", "expense", "income", "account", "transaction", "saving", "savings",
+    "saldo", "cash", "monthly", "mês", "mensal", "mensalidade", "pagamento", "pagamentos"
+  ];
+
+  return financeKeywords.some(keyword => normalized.includes(keyword));
+}
+
 async function moderate(client, text) {
-  const result = await client.moderations.create({
-    model: "omni-moderation-latest",
-    input: text,
-  });
-  if (result.results[0]?.flagged) {
-    throw new HttpError(400, "Não foi possível processar esta mensagem.");
+  try {
+    const result = await client.moderations.create({
+      model: "omni-moderation-latest",
+      input: text,
+    });
+    if (result.results[0]?.flagged) {
+      throw new HttpError(400, "Não foi possível processar esta mensagem.");
+    }
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
+    // OpenRouter may not support moderation; continue without blocking the chat.
+    console.warn("Moderation unavailable, continuing without it:", error.message);
   }
 }
 
 // ─── Standard response ────────────────────────────────────────────────────────
 
 export async function askFinancialAssistant(userId, message, conversationId = null) {
+  if (!isRelevantToFinPilot(message)) {
+    throw new HttpError(400, "Só posso ajudar com perguntas relacionadas com finanças e o FinPilot.");
+  }
+
   const client  = getClient();
   await moderate(client, message);
 
   const convId  = await resolveConversation(userId, conversationId);
   const context = await getFinancialContext(userId);
   const history = await getHistory(convId);
+  const model   = resolveModel(env.OPENAI_MODEL);
 
-  const response = await client.responses.create({
-    model: env.OPENAI_MODEL,
-    instructions: INSTRUCTIONS,
-    input: [
-      {
-        role: "developer",
-        content: `Contexto financeiro calculado pelo servidor: ${JSON.stringify(context)}`,
-      },
-      ...history.map(m => ({ role: m.role, content: m.content })),
+  const response = await client.chat.completions.create({
+    model,
+    messages: [
+      { role: "system", content: INSTRUCTIONS },
+      { role: "system", content: `Contexto financeiro calculado pelo servidor: ${JSON.stringify(context)}` },
+      ...history.map(m => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content })),
       { role: "user", content: message },
     ],
-    max_output_tokens: 600,
-    safety_identifier: createHash("sha256").update(String(userId)).digest("hex"),
+    max_tokens: 600,
+    temperature: 0.3,
   });
 
-  const answer = response.output_text?.trim();
+  const answer = response.choices?.[0]?.message?.content?.trim();
   if (!answer) throw new HttpError(502, "A IA não devolveu uma resposta válida.");
 
-  const tokens = response.usage?.output_tokens ?? null;
+  const tokens = response.usage?.completion_tokens ?? null;
   await saveExchange(convId, message, answer, tokens);
 
-  return { answer, model: env.OPENAI_MODEL, conversationId: convId };
+  return { answer, model, conversationId: convId };
 }
 
 // ─── Streaming response ───────────────────────────────────────────────────────
 
 export async function streamFinancialAssistant(userId, message, conversationId = null, res) {
-  const client  = getClient();
-  await moderate(client, message);
+  const writeSse = payload => {
+    if (res.writableEnded) return;
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  };
 
-  const convId  = await resolveConversation(userId, conversationId);
-  const context = await getFinancialContext(userId);
-  const history = await getHistory(convId);
-
-  const stream = await client.responses.create({
-    model: env.OPENAI_MODEL,
-    instructions: INSTRUCTIONS,
-    input: [
-      {
-        role: "developer",
-        content: `Contexto financeiro calculado pelo servidor: ${JSON.stringify(context)}`,
-      },
-      ...history.map(m => ({ role: m.role, content: m.content })),
-      { role: "user", content: message },
-    ],
-    max_output_tokens: 600,
-    safety_identifier: createHash("sha256").update(String(userId)).digest("hex"),
-    stream: true,
-  });
-
-  let fullAnswer = "";
-  let tokens     = null;
-
-  for await (const event of stream) {
-    if (event.type === "response.output_text.delta") {
-      const delta = event.delta ?? "";
-      fullAnswer += delta;
-      res.write(`data: ${JSON.stringify({ delta })}\n\n`);
-    } else if (event.type === "response.completed") {
-      tokens = event.response?.usage?.output_tokens ?? null;
-      break;
-    }
+  if (!isRelevantToFinPilot(message)) {
+    const errorMessage = "Só posso ajudar com perguntas relacionadas com finanças e o FinPilot.";
+    writeSse({ error: errorMessage });
+    res.end();
+    return;
   }
 
-  if (!fullAnswer) throw new HttpError(502, "A IA não devolveu uma resposta válida.");
+  const client = getClient();
+  await moderate(client, message);
 
-  await saveExchange(convId, message, fullAnswer, tokens);
-  res.write(`data: ${JSON.stringify({ done: true, model: env.OPENAI_MODEL, conversationId: convId })}\n\n`);
-  res.end();
+  const convId = await resolveConversation(userId, conversationId);
+  const context = await getFinancialContext(userId);
+  const history = await getHistory(convId);
+  const model = resolveModel(env.OPENAI_MODEL);
+
+  try {
+    const stream = await client.chat.completions.create({
+      model,
+      messages: [
+        { role: "system", content: INSTRUCTIONS },
+        { role: "system", content: `Contexto financeiro calculado pelo servidor: ${JSON.stringify(context)}` },
+        ...history.map(m => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content })),
+        { role: "user", content: message },
+      ],
+      max_tokens: 600,
+      temperature: 0.3,
+      stream: true,
+    });
+
+    let fullAnswer = "";
+    let tokens = null;
+
+    for await (const chunk of stream) {
+      if (res.writableEnded) break;
+      const delta = chunk.choices?.[0]?.delta?.content ?? "";
+      if (!delta) continue;
+
+      fullAnswer += delta;
+      writeSse({ delta });
+
+      if (chunk.usage?.completion_tokens) {
+        tokens = chunk.usage.completion_tokens;
+      }
+    }
+
+    if (!fullAnswer) {
+      throw new HttpError(502, "A IA não devolveu uma resposta válida.");
+    }
+
+    await saveExchange(convId, message, fullAnswer, tokens);
+    writeSse({ done: true, model, conversationId: convId });
+  } catch (error) {
+    const messageText = error instanceof Error ? error.message : "Não foi possível gerar uma resposta.";
+    writeSse({ error: messageText });
+  } finally {
+    if (!res.writableEnded) {
+      res.end();
+    }
+  }
 }

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { AlertTriangle, BellRing, CheckCircle2 } from "lucide-react";
 
 import { createGlobalStyles, darkTheme, lightTheme } from "../shared/utils/theme";
+import LogoReduzido from "../../Logo_Reduzido.png";
 import { CHAT0, BDG0, GOALS0, NTF0, SUB0, TX0 } from "../shared/utils/mockData";
 import { nextId } from "../shared/utils/currency";
 import { hydrateBudget, hydrateGoal, hydrateSubscription, hydrateTransaction } from "../shared/utils/entities";
@@ -161,6 +162,7 @@ export default function App() {
             time:  new Date(n.createdAt).toLocaleString("pt-PT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
             // Map type to icon — use a generic fallback handled in TopBar
             color: n.type === "warning" ? "#E8A33D" : n.type === "error" ? "#E0544F" : n.type === "success" ? "#5DCAA5" : "#7F8FE4",
+            icon: n.type === "warning" ? AlertTriangle : n.type === "error" ? AlertTriangle : n.type === "success" ? CheckCircle2 : BellRing,
           })));
         }
         if ((history?.messages ?? []).length) {
@@ -343,7 +345,7 @@ export default function App() {
       <button className="fp-btn" aria-label="Abrir assistente FinPilot"
         onClick={() => setChatOpen(o => !o)}
         style={{ position: "absolute", bottom: 22, right: 22, width: contentScrolled && !chatOpen ? 30 : 50, height: contentScrolled && !chatOpen ? 30 : 50, borderRadius: "50%", background: `linear-gradient(135deg,${T.accent},${T.accent2})`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: contentScrolled && !chatOpen ? "0 4px 12px rgba(0,0,0,.22)" : "0 6px 18px rgba(0,0,0,.28)", zIndex: 5, border: "none", cursor: "pointer", transition: "width .22s ease, height .22s ease, box-shadow .22s ease, transform .22s ease" }}>
-        <Sparkles size={contentScrolled && !chatOpen ? 12 : 20} color="#0A0D12" />
+        <img src={LogoReduzido} alt="Assistente FinPilot" style={{ width: contentScrolled && !chatOpen ? 14 : 22, height: contentScrolled && !chatOpen ? 14 : 22, objectFit: "contain", display: "block" }} />
       </button>
     </div>
   );

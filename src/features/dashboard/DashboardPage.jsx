@@ -51,7 +51,12 @@ export default function DashboardPage({ T, goals, subs, txs, setView }) {
                 <CartesianGrid stroke={T.border} vertical={false} />
                 <XAxis dataKey="m" tick={{ fontSize: 10, fill: T.mut }} axisLine={false} tickLine={false} />
                 <YAxis hide />
-                <Tooltip contentStyle={{ background: T.panel2, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 11 }} formatter={v => formatRoundedCurrency(v)} />
+                <Tooltip
+                  cursor={{ stroke: T.border, strokeDasharray: "4 4", strokeWidth: 1 }}
+                  contentStyle={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 11, color: T.text, boxShadow: "0 8px 18px rgba(0,0,0,.12)" }}
+                  wrapperStyle={{ outline: "none" }}
+                  formatter={v => formatRoundedCurrency(v)}
+                />
                 <Line type="monotone" dataKey="income" stroke={T.accent} strokeWidth={2} dot={false} isAnimationActive animationDuration={900} />
                 <Line type="monotone" dataKey="expense" stroke={T.accent2} strokeWidth={2} dot={false} isAnimationActive animationDuration={900} />
               </LineChart>

@@ -88,23 +88,26 @@ export default function TopBar({ T, view, profile, notifs, setNotifs, searchQ, s
                 )}
               </div>
               <div className="fp-scroll" style={{ maxHeight: 300, overflowY: "auto" }}>
-                {notifs.map((n, i) => (
-                  <div key={n.id} className="fp-row"
-                    onClick={() => setNotifs(ns => ns.map(x => x.id === n.id ? { ...x, read: true } : x))}
-                    style={{ display: "flex", gap: 10, padding: "11px 14px", cursor: "pointer", borderBottom: i < notifs.length - 1 ? `1px solid ${T.border}` : "none", background: n.read ? "transparent" : `${T.accent}08` }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 8, background: `${n.color}22`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
-                      <n.icon size={13} color={n.color} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600 }}>
-                        {n.title}
-                        {!n.read && <span style={{ width: 5, height: 5, borderRadius: "50%", background: T.accent, flexShrink: 0 }} />}
+                {notifs.map((n, i) => {
+                  const Icon = typeof n.icon === "function" ? n.icon : BellRing;
+                  return (
+                    <div key={n.id} className="fp-row"
+                      onClick={() => setNotifs(ns => ns.map(x => x.id === n.id ? { ...x, read: true } : x))}
+                      style={{ display: "flex", gap: 10, padding: "11px 14px", cursor: "pointer", borderBottom: i < notifs.length - 1 ? `1px solid ${T.border}` : "none", background: n.read ? "transparent" : `${T.accent}08` }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 8, background: `${n.color}22`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
+                        <Icon size={13} color={n.color} />
                       </div>
-                      <div style={{ fontSize: 11, color: T.sub, marginTop: 2, lineHeight: 1.4 }}>{n.text}</div>
-                      <div style={{ fontSize: 10, color: T.mut, marginTop: 3 }}>{n.time}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600 }}>
+                          {n.title}
+                          {!n.read && <span style={{ width: 5, height: 5, borderRadius: "50%", background: T.accent, flexShrink: 0 }} />}
+                        </div>
+                        <div style={{ fontSize: 11, color: T.sub, marginTop: 2, lineHeight: 1.4 }}>{n.text}</div>
+                        <div style={{ fontSize: 10, color: T.mut, marginTop: 3 }}>{n.time}</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

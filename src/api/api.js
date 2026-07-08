@@ -185,26 +185,56 @@ export const api = {
             throw new Error(payload.error || "Não foi possível contactar o servidor.");
           }
 
-          const reader  = response.body.getReader();
+          const reader = response.body?.getReader();
+          if (!reader) throw new Error("O servidor não devolveu um fluxo de resposta.");
+
           const decoder = new TextDecoder();
           let buffer = "";
+          let eventName = "";
+          let eventData = "";
+
+          const flushEvent = () => {
+            if (!eventData) return;
+            try {
+              const parsed = JSON.parse(eventData);
+              if (eventName === "error") {
+                throw new Error(parsed.error || "O assistente não conseguiu responder.");
+              }
+              if (parsed.delta !== undefined) onDelta(parsed.delta);
+              if (parsed.done) onDone({ model: parsed.model, conversationId: parsed.conversationId });
+            } catch (err) {
+              if (err instanceof Error && err.message) {
+                onError(err);
+              }
+            }
+            eventName = "";
+            eventData = "";
+          };
 
           while (true) {
             const { done, value } = await reader.read();
-            if (done) break;
+            if (done) {
+              flushEvent();
+              break;
+            }
+
             buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split(/\r?\n/);
+            buffer = lines.pop() ?? "";
 
-            const parts = buffer.split("\n\n");
-            buffer = parts.pop();
-
-            for (const part of parts) {
-              const line = part.replace(/^data:\s*/, "");
-              if (!line) continue;
-              try {
-                const parsed = JSON.parse(line);
-                if (parsed.delta !== undefined) onDelta(parsed.delta);
-                if (parsed.done) onDone({ model: parsed.model, conversationId: parsed.conversationId });
-              } catch { /* ignore malformed lines */ }
+            for (const line of lines) {
+              if (!line.trim()) {
+                flushEvent();
+                continue;
+              }
+              if (line.startsWith(":")) continue;
+              if (line.startsWith("event:")) {
+                eventName = line.slice(6).trim();
+                continue;
+              }
+              if (line.startsWith("data:")) {
+                eventData = line.slice(5).trim();
+              }
             }
           }
         })

@@ -22,8 +22,10 @@ const schema = z.object({
   TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(604800),
   GOOGLE_CLIENT_ID:  z.string().optional(),
 
-  OPENAI_API_KEY:    z.string().optional(),
-  OPENAI_MODEL:      z.string().default("gpt-4o"),
+  OPENAI_API_KEY:      z.string().optional(),
+  OPENROUTER_API_KEY:  z.string().optional(),
+  OPENROUTER_BASE_URL: z.string().default("https://openrouter.ai/api/v1"),
+  OPENAI_MODEL:        z.string().default("gpt-4o"),
 });
 
 const parsed = schema.parse(process.env);

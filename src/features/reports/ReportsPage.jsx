@@ -139,7 +139,12 @@ export default function ReportsPage({ T, toast }) {
                 <CartesianGrid stroke={T.border} vertical={false} />
                 <XAxis dataKey="m" tick={{ fontSize: 10, fill: T.mut }} axisLine={false} tickLine={false} />
                 <YAxis hide />
-                <Tooltip contentStyle={{ background: T.panel2, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 11 }} formatter={v => formatRoundedCurrency(v)} />
+                <Tooltip
+                  cursor={{ fill: `${T.border}20` }}
+                  contentStyle={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 11, color: T.text, boxShadow: "0 8px 18px rgba(0,0,0,.12)" }}
+                  wrapperStyle={{ outline: "none" }}
+                  formatter={v => formatRoundedCurrency(v)}
+                />
                 <Bar dataKey="income"  fill={T.accent}  radius={[4, 4, 0, 0]} isAnimationActive animationDuration={800} />
                 <Bar dataKey="expense" fill={T.accent2} radius={[4, 4, 0, 0]} isAnimationActive animationDuration={800} />
               </BarChart>
@@ -156,7 +161,12 @@ export default function ReportsPage({ T, toast }) {
                 <CartesianGrid stroke={T.border} vertical={false} />
                 <XAxis dataKey="m" tick={{ fontSize: 10, fill: T.mut }} axisLine={false} tickLine={false} />
                 <YAxis hide />
-                <Tooltip contentStyle={{ background: T.panel2, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 11 }} formatter={v => formatRoundedCurrency(v)} />
+                <Tooltip
+                  cursor={{ stroke: T.border, strokeDasharray: "4 4", strokeWidth: 1 }}
+                  contentStyle={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 11, color: T.text, boxShadow: "0 8px 18px rgba(0,0,0,.12)" }}
+                  wrapperStyle={{ outline: "none" }}
+                  formatter={v => formatRoundedCurrency(v)}
+                />
                 <Area type="monotone" dataKey="saved" stroke={T.accent} strokeWidth={2} fill="url(#sg)" isAnimationActive animationDuration={900} />
               </AreaChart>
             </ResponsiveContainer>
@@ -171,7 +181,8 @@ export default function ReportsPage({ T, toast }) {
               <XAxis type="number" hide />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 11.5, fill: T.sub }} axisLine={false} tickLine={false} width={90} />
               <Tooltip
-                contentStyle={{ background: T.panel2, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 11, color: T.text }}
+                cursor={{ fill: `${T.border}20` }}
+                contentStyle={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 11, color: T.text, boxShadow: "0 8px 18px rgba(0,0,0,.12)" }}
                 itemStyle={{ color: T.text }}
                 labelStyle={{ color: T.sub }}
                 formatter={v => formatCurrency(v)}
